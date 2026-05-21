@@ -172,8 +172,8 @@ ClaudePizza/
 | 2 | Motor de simulación: reloj, event bus, business rules | ✅ |
 | 3 | Agentes LangGraph: grafo, 4 agentes con LLMs reales | ✅ |
 | 4 | Frontend Sim Viewer: visualización en tiempo real, animaciones, sonido | ✅ |
-| 5 | Dashboard Analytics: métricas, control panel, stress testing | 🔄 Siguiente |
-| 6 | Polish: sprites 8-bit, sonidos reales, UX final | ⏳ |
+| 5 | Dashboard Analytics: métricas, control panel, stress testing | ✅ |
+| 6 | Polish: sprites 8-bit robots, pipeline visual, documentación técnica | ✅ |
 
 ---
 

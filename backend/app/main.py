@@ -9,6 +9,7 @@ from fastapi import FastAPI, Request, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.agents.runner import SimRunner
+from app.api.analytics import router as analytics_router
 from app.api.orders import router as orders_router
 from app.api.sim import router as sim_router
 from app.db.postgres import init_db
@@ -39,6 +40,7 @@ async def lifespan(app: FastAPI):
 app = FastAPI(title="Pizza Simulator API", version="0.1.0", lifespan=lifespan)
 app.include_router(sim_router, prefix="/sim", tags=["simulation"])
 app.include_router(orders_router, prefix="/orders", tags=["orders"])
+app.include_router(analytics_router, prefix="/analytics", tags=["analytics"])
 
 app.add_middleware(
     CORSMiddleware,

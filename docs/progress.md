@@ -135,19 +135,87 @@
 
 ---
 
-## Fase 5 — Dashboard Analytics ⏳
+## Fase 5 — Dashboard Analytics ✅
 
-- [ ] Panel de métricas en tiempo real (pedidos activos, tiempo promedio, eficiencia)
-- [ ] Control de auto-pedidos desde frontend (activar/desactivar, frecuencia)
-- [ ] Ajuste de reglas de negocio en vivo (SimConfig UI)
-- [ ] Escenarios de stress testing (rush hour, delivery lento)
-- [ ] Gráficas históricas con Recharts
+- [x] **SimConfig extendido: `auto_order_enabled` + `auto_order_interval_seconds`**
+  → Antes hardcodeados a 0. Moverlos a SimConfig los hace configurables en runtime
+  desde el frontend sin reiniciar el servidor — cualquier cambio se refleja en segundos.
+
+- [x] **SimRunner lee SimConfig de Redis en cada loop**
+  → El runner consulta Redis cada 2.5s. Si el usuario activa auto-pedidos desde el
+  Dashboard, el runner los ve en el siguiente tick sin restart.
+
+- [x] **`api/analytics.py`: `/summary`, `/timeline`, `/orders-by-status`**
+  → Agregaciones en el backend (SQL), no en el frontend. COUNT y GROUP BY son más
+  eficientes en PostgreSQL que iterar arrays en JS.
+
+- [x] **`useAnalytics` hook: polling cada 5s**
+  → Las métricas son agregaciones, no eventos — el backend no sabe cuándo cambia un KPI.
+  5s es suficiente sin sobrecargar la DB. El hook solo actúa cuando el tab está visible.
+
+- [x] **`MetricsCards`: KPIs con color semántico**
+  → 4 cards: total pedidos, completados, on-time rate, órdenes en memoria.
+  On-time rate cambia de verde a rojo si baja del 80% — feedback visual inmediato.
+
+- [x] **`ConfigPanel`: sliders para todas las reglas de SimConfig**
+  → Cada slider llama `api.updateConfig()` al cambiar. El backend persiste en Redis
+  y hace broadcast `CONFIG_UPDATED` — todos los clientes WebSocket reciben el cambio.
+
+- [x] **`StressPanel`: 4 escenarios preset**
+  → RUSH HOUR (5 pedidos a la vez), SLOW DELIVERY (SLA=2min), DIRTY KITCHEN
+  (limpieza cada pizza), RESET CONFIG. Permiten explorar el sistema bajo estrés
+  con un clic, sin tener que configurar manualmente cada parámetro.
+
+- [x] **`OrdersChart`: LineChart (historial) + PieChart (distribución)**
+  → LineChart: polling 8s a /analytics/timeline. PieChart: datos del store Zustand
+  (sin polling — ya en memoria). Dos fuentes para complementar sin duplicar requests.
+
+- [x] **Tab navigation en App.jsx: SIM VIEWER | DASHBOARD**
+  → `useState` local en App — no necesita React Router para solo 2 vistas.
+  SimControls siempre visible porque ▶/⏹ aplican a ambas vistas.
+
+- [x] **Verificado: analytics retornan datos reales**
+  → 59 órdenes del testing de Fase 3 aparecen en `/analytics/summary`.
 
 ---
 
-## Fase 6 — Polish ⏳
+## Fase 6 — Polish ✅
 
-- [ ] Sprites 8-bit estilo robot para cada agente (reemplaza emojis en AgentSprite)
-- [ ] Sonidos reales con Howler.js (reemplaza Web Audio API tones)
-- [ ] Animaciones avanzadas (movimiento entre zonas, trail del delivery)
-- [ ] UX final y responsive
+- [x] **SVG robots 8-bit para cada agente**
+  → Manager (azul/gris con tablet), Chef (blanco/amarillo con gorro), Delivery (verde con
+  ruedas y cajita), ClienteHouse (casa pixelada). SVG puro sin imágenes externas —
+  escalable, animable con Framer Motion, nítido con `image-rendering: pixelated`.
+
+- [x] **Pipeline visual izquierda→derecha (20/30/50%)**
+  → Rediseño completo del SimViewer como línea de producción estilo Nintendo.
+  ManagerZone (20%), ChefZone (30%), DeliveryZone (50%) con proporciones fijas.
+  Cada zona tiene su propio fondo y robot con animaciones específicas por evento.
+
+- [x] **Comanda volando de Manager → Chef**
+  → Overlay absoluto con `motion.div` que anima la posición horizontal al recibir
+  `COMANDA_SENT`. El emoji "📋" cruza la pantalla con filter glow. Implementado
+  con `AnimatePresence` para entrada/salida suave.
+
+- [x] **Delivery bot con ruedas y movimiento entre casas**
+  → El robot Delivery tiene ruedas SVG animadas (`@keyframes spin` cuando `moving=true`).
+  Se mueve horizontalmente en la DeliveryZone con `motion.div animate={{ left: X% }}`.
+  Las ruedas se invierten (`scaleX(-1)`) cuando regresa.
+
+- [x] **Casas dinámicas por pedido activo**
+  → Cada `DELIVERY_DISPATCHED` genera una `ClienteHouse` en el store.
+  Las casas aparecen con scale animation, se "apagan" (gris) al `DELIVERED`,
+  y desaparecen al `DELIVERY_RETURNED`. Distribuidas automáticamente en la zona.
+
+- [x] **Sistema de posiciones en Zustand (`agentActions`)**
+  → Nuevo estado `agentActions` + `deliveryHouses` + `comandaFlying` en el store.
+  `useWebSocket` mapea cada evento a cambios de posición/acción de los agentes.
+
+- [x] **Sonidos chiptune mejorados (Web Audio API)**
+  → Síntesis tipo Game Boy/NES: `arpeggio()` para victorias, `fanfare()` para pagos,
+  `defeat()` para entregas gratis, `motorSound()` para el delivery. Cada evento tiene
+  su propio "voice" (square/sawtooth/triangle) y secuencia de notas.
+
+- [x] **Documentación técnica completa**
+  → `docs/data-model.md`: schema PostgreSQL, Redis keys, flujo completo de datos.
+  → `docs/integrations.md`: Google Gemini, Groq, LangGraph, WebSocket, Docker.
+  → `docs/security.md`: estado actual de seguridad + checklist para producción.

@@ -1,41 +1,72 @@
 import { useCallback } from 'react'
 
-// Sonidos generados con Web Audio API — sin archivos externos.
-// Razón: evita dependencias de assets en desarrollo. En Fase 6 se reemplazarán
-// por samples reales (MP3/OGG) cargados via Howler.js.
-function createTone(frequency, duration, type = 'sine', volume = 0.15) {
-  try {
-    const ctx = new (window.AudioContext || window.webkitAudioContext)()
-    const oscillator = ctx.createOscillator()
-    const gainNode = ctx.createGain()
+// Síntesis de audio chiptune — estilo videojuego 8-bit usando Web Audio API.
+// Howler.js (instalado) se usará en el futuro para samples reales MP3/OGG.
+// Por ahora: síntesis programática que suena a Game Boy / NES.
 
-    oscillator.connect(gainNode)
-    gainNode.connect(ctx.destination)
-
-    oscillator.type = type
-    oscillator.frequency.setValueAtTime(frequency, ctx.currentTime)
-    gainNode.gain.setValueAtTime(volume, ctx.currentTime)
-    gainNode.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + duration)
-
-    oscillator.start(ctx.currentTime)
-    oscillator.stop(ctx.currentTime + duration)
-  } catch (e) {
-    // Web Audio puede fallar en algunos contextos — silenciar el error
+function getCtx() {
+  if (!window._audioCtx) {
+    window._audioCtx = new (window.AudioContext || window.webkitAudioContext)()
   }
+  return window._audioCtx
+}
+
+// Nota simple con envolvente ADSR básica
+function note(freq, duration, type = 'square', vol = 0.12, delay = 0) {
+  try {
+    const ctx = getCtx()
+    const t = ctx.currentTime + delay
+    const osc = ctx.createOscillator()
+    const gain = ctx.createGain()
+    osc.connect(gain)
+    gain.connect(ctx.destination)
+    osc.type = type
+    osc.frequency.setValueAtTime(freq, t)
+    gain.gain.setValueAtTime(0, t)
+    gain.gain.linearRampToValueAtTime(vol, t + 0.01)
+    gain.gain.setValueAtTime(vol, t + duration * 0.7)
+    gain.gain.exponentialRampToValueAtTime(0.001, t + duration)
+    osc.start(t)
+    osc.stop(t + duration)
+  } catch (e) {}
+}
+
+// Arpegio — notas en secuencia rápida, estilo 8-bit
+function arpeggio(freqs, noteDur = 0.08, type = 'square', vol = 0.1) {
+  freqs.forEach((f, i) => note(f, noteDur, type, vol, i * noteDur))
+}
+
+// Fanfare — melodía corta de victoria
+function fanfare() {
+  arpeggio([523, 659, 784, 1047], 0.1, 'square', 0.12)
+}
+
+// Sonido de derrota / pizzas gratis
+function defeat() {
+  arpeggio([523, 466, 415, 349, 294], 0.12, 'sawtooth', 0.1)
+}
+
+// Motor de delivery (ruido de motor 8-bit)
+function motorSound() {
+  note(80,  0.15, 'sawtooth', 0.08)
+  note(100, 0.15, 'sawtooth', 0.08, 0.15)
+  note(80,  0.15, 'sawtooth', 0.08, 0.30)
 }
 
 // Mapa de sonidos por EventType
 const SOUNDS = {
-  ORDER_CREATED:       () => createTone(880, 0.15, 'sine'),
-  ORDER_ACCEPTED:      () => createTone(660, 0.2, 'square', 0.1),
-  PIZZA_COOKING:       () => createTone(200, 0.3, 'sawtooth', 0.08),
-  PIZZA_BAKED:         () => { createTone(523, 0.1); setTimeout(() => createTone(659, 0.15), 100) },
-  PIZZA_PACKED:        () => createTone(440, 0.1, 'square', 0.08),
-  DELIVERY_DISPATCHED: () => createTone(349, 0.25, 'triangle'),
-  DELIVERED:           () => { createTone(523, 0.1); setTimeout(() => createTone(784, 0.2), 120) },
-  PAYMENT_RECEIVED:    () => { createTone(659, 0.1); setTimeout(() => createTone(784, 0.1), 80); setTimeout(() => createTone(1047, 0.2), 160) },
-  PAYMENT_FREE:        () => createTone(220, 0.5, 'sawtooth', 0.12),
-  STATION_CLEANING:    () => createTone(300, 0.2, 'triangle', 0.08),
+  ORDER_CREATED:        () => note(880, 0.12, 'square', 0.1),
+  ORDER_ACCEPTED:       () => arpeggio([660, 784], 0.1),
+  COMANDA_SENT:         () => note(523, 0.15, 'square', 0.08),
+  PIZZA_COOKING:        () => note(220, 0.2, 'sawtooth', 0.07),
+  PIZZA_BAKED:          () => arpeggio([523, 659, 784], 0.09, 'square', 0.12),
+  PIZZA_PACKED:         () => note(440, 0.1, 'square', 0.08),
+  DELIVERY_DISPATCHED:  () => motorSound(),
+  DELIVERED:            () => arpeggio([659, 784, 1047], 0.09),
+  PAYMENT_RECEIVED:     () => fanfare(),
+  PAYMENT_FREE:         () => defeat(),
+  STATION_CLEANING:     () => { note(300, 0.1, 'triangle', 0.06); note(250, 0.1, 'triangle', 0.06, 0.15) },
+  CLOCK_TICK:           null, // sin sonido en cada tick
 }
 
 export function useSound() {

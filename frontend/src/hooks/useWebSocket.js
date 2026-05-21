@@ -40,45 +40,22 @@ export function useWebSocket() {
 
   useEffect(() => {
     function connect() {
-      // /ws → proxied por Vite a ws://localhost:8000/ws
       const ws = new WebSocket(`ws://${window.location.host}/ws`)
       wsRef.current = ws
-
-      ws.onmessage = (e) => {
-        const event = JSON.parse(e.data)
-        handleEvent(event)
-      }
-
-      ws.onclose = () => {
-        // Reconexión automática cada 3s si el backend se cae o reinicia
-        setTimeout(connect, 3000)
-      }
-
+      ws.onmessage = (e) => handleEvent(JSON.parse(e.data))
+      ws.onclose = () => setTimeout(connect, 3000)
       ws.onerror = () => ws.close()
     }
 
     function handleEvent(event) {
       const { type, payload, agent, sim_time } = event
+      const store = useSimStore.getState()
 
-      // Reloj de simulación
-      if (type === 'CLOCK_TICK') {
-        updateClock(payload)
-        return
-      }
+      if (type === 'CLOCK_TICK') { updateClock(payload); return }
+      if (type === 'CONFIG_UPDATED') { store.setConfig(payload); return }
+      if (type === 'CONNECTED')     { store.setConfig(payload); return }
 
-      // Cambio de config — sincroniza el store para que ConfigPanel refleje valores actuales
-      if (type === 'CONFIG_UPDATED') {
-        useSimStore.getState().setConfig(payload)
-        return
-      }
-
-      // Estado inicial al conectar — carga la config actual en el store
-      if (type === 'CONNECTED') {
-        useSimStore.getState().setConfig(payload)
-        return
-      }
-
-      // Eventos de negocio → actualizar agente + log
+      // Actualizar agente (legacy — para EventLog y agentStates)
       const agentName = agent || EVENT_AGENT_MAP[type]
       if (agentName) {
         updateAgent(agentName, {
@@ -89,21 +66,63 @@ export function useWebSocket() {
         })
       }
 
-      // Agregar al feed de eventos
+      // Fase 6: acciones visuales del pipeline
+      switch (type) {
+        case 'ORDER_CREATED':
+        case 'ORDER_ACCEPTED':
+          store.updateAgentAction('manager', { action: type.toLowerCase() })
+          break
+        case 'COMANDA_SENT':
+          store.updateAgentAction('manager', { action: 'comanda_sent' })
+          store.setComandaFlying(true)
+          setTimeout(() => store.setComandaFlying(false), 1200)
+          break
+        case 'PIZZA_COOKING':
+          store.updateAgentAction('chef', { action: 'cooking', cooking: true })
+          break
+        case 'PIZZA_BAKED':
+          store.updateAgentAction('chef', { action: 'baked', cooking: false })
+          break
+        case 'PIZZA_PACKED':
+          store.updateAgentAction('chef', { action: 'packed', cooking: false })
+          break
+        case 'STATION_CLEANING':
+          store.updateAgentAction('chef', { action: 'cleaning', cooking: false })
+          break
+        case 'DELIVERY_DISPATCHED':
+          store.updateAgentAction('delivery', { action: 'moving', moving: true, returning: false })
+          if (payload?.order_id) store.addDeliveryHouse(payload.order_id)
+          break
+        case 'DELIVERED':
+          if (payload?.order_id) store.markHouseDelivered(payload.order_id)
+          store.updateAgentAction('delivery', { action: 'delivered', moving: false })
+          break
+        case 'DELIVERY_RETURNED':
+          store.updateAgentAction('delivery', { action: 'returning', moving: false, returning: true })
+          setTimeout(() => {
+            store.updateAgentAction('delivery', { action: 'idle', returning: false })
+            store.clearDeliveredHouses()
+          }, 2000)
+          break
+        case 'PAYMENT_RECEIVED':
+        case 'PAYMENT_FREE':
+          store.updateAgentAction('manager', { action: type === 'PAYMENT_FREE' ? 'shocked' : 'happy' })
+          break
+      }
+
       addEvent({ type, payload, agent: agentName, sim_time, id: Date.now() })
 
-      // Sincronizar estado de pedidos
       if (type === 'ORDER_CREATED' && payload?.order_id) {
         addOrder({ id: payload.order_id, items: payload.items, status: 'PENDING' })
       }
-      if (payload?.order_id && EVENT_STATUS_MAP[type]) {
-        const statusMap = {
-          ORDER_ACCEPTED: 'ACCEPTED', PIZZA_COOKING: 'COOKING',
-          PIZZA_BAKED: 'BAKED', PIZZA_PACKED: 'PACKED',
-          DELIVERY_DISPATCHED: 'IN_DELIVERY', DELIVERED: 'DELIVERED',
-          PAYMENT_RECEIVED: 'PAID', PAYMENT_FREE: 'FREE',
-        }
-        if (statusMap[type]) updateOrderStatus(payload.order_id, statusMap[type])
+      const statusMap = {
+        ORDER_ACCEPTED: 'ACCEPTED', PIZZA_COOKING: 'COOKING',
+        PIZZA_BAKED: 'BAKED', PIZZA_PACKED: 'PACKED',
+        DELIVERY_DISPATCHED: 'IN_DELIVERY', DELIVERED: 'DELIVERED',
+        PAYMENT_RECEIVED: 'PAID', PAYMENT_FREE: 'FREE',
+      }
+      if (payload?.order_id && statusMap[type]) {
+        updateOrderStatus(payload.order_id, statusMap[type])
       }
     }
 

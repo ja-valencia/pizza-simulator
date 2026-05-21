@@ -1,6 +1,6 @@
 import asyncio
 import logging
-import random
+import time
 import uuid
 from datetime import datetime
 
@@ -26,7 +26,6 @@ class SimRunner:
         self._bg_tasks: set[asyncio.Task] = set()  # evita GC de tareas en background
         self.clock: SimClock | None = None
         self.event_bus: EventBus | None = None
-        self._auto_order_probability = 0.0  # desactivado hasta Fase 5 (control desde frontend)
 
     async def start(self, clock: SimClock, event_bus: EventBus) -> None:
         if self.running:
@@ -118,9 +117,29 @@ class SimRunner:
         self._spawn(self.process_order(order_id, items, self.clock, self.event_bus))
 
     async def _loop(self) -> None:
+        # _last_auto_order: cuándo se generó el último pedido automático
+        # Comparamos contra sim_time (no tiempo real) para respetar la velocidad
+        _last_auto_order_real_time = 0.0
         while self.running:
             await asyncio.sleep(2.5)
             if not self.clock or not self.clock.running:
                 continue
-            if random.random() < self._auto_order_probability:
+
+            # Leer SimConfig de Redis en cada tick para reflejar cambios del Dashboard
+            try:
+                from app.db.redis import get_redis
+                from app.models.sim_config import REDIS_CONFIG_KEY, SimConfig
+                import json
+                redis = await get_redis()
+                raw = await redis.get(REDIS_CONFIG_KEY)
+                config = SimConfig(**json.loads(raw)) if raw else SimConfig()
+            except Exception:
+                config = SimConfig()
+
+            if not config.auto_order_enabled:
+                continue
+
+            now = time.monotonic()
+            if now - _last_auto_order_real_time >= config.auto_order_interval_seconds:
+                _last_auto_order_real_time = now
                 self._spawn(self.create_auto_order())

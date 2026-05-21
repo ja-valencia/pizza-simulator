@@ -69,4 +69,50 @@ export const useSimStore = create((set) => ({
   // Config actual de la simulación — se sincroniza al conectar y en CONFIG_UPDATED
   config: null,
   setConfig: (config) => set({ config }),
+
+  // Estado de posición y acción de cada agente para el pipeline visual.
+  // Fase 6: permite animar movimiento entre zonas y acciones específicas.
+  agentActions: {
+    manager:  { action: 'idle', animKey: 0 },
+    chef:     { action: 'idle', animKey: 0, cooking: false },
+    delivery: { action: 'idle', animKey: 0, moving: false, returning: false, posX: 0 },
+  },
+
+  // Casas activas en la zona de delivery.
+  // Se generan cuando un pedido entra en IN_DELIVERY y desaparecen con PAID/FREE.
+  deliveryHouses: [],  // [{ orderId, delivered, posX }]
+
+  // Comanda volando de Manager → Chef (overlay animado)
+  comandaFlying: false,
+
+  updateAgentAction: (agentName, update) => set((state) => ({
+    agentActions: {
+      ...state.agentActions,
+      [agentName]: {
+        ...state.agentActions[agentName],
+        ...update,
+        animKey: (state.agentActions[agentName]?.animKey || 0) + 1,
+      },
+    },
+  })),
+
+  addDeliveryHouse: (orderId) => set((state) => {
+    if (state.deliveryHouses.find(h => h.orderId === orderId)) return state
+    // Distribuir casas uniformemente en la zona de delivery (50% del container)
+    const existing = state.deliveryHouses.length
+    const posX = 10 + existing * 28  // % relativo a la zona delivery
+    return { deliveryHouses: [...state.deliveryHouses, { orderId, delivered: false, posX }] }
+  }),
+
+  markHouseDelivered: (orderId) => set((state) => ({
+    deliveryHouses: state.deliveryHouses.map(h =>
+      h.orderId === orderId ? { ...h, delivered: true } : h
+    ),
+  })),
+
+  clearDeliveredHouses: () => set((state) => ({
+    deliveryHouses: state.deliveryHouses.filter(h => !h.delivered),
+  })),
+
+  setComandaFlying: (flying) => set({ comandaFlying: flying }),
 }))

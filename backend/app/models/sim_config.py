@@ -19,3 +19,9 @@ class SimConfig(BaseModel):
 
     # Simulación
     sim_speed_multiplier: float = Field(default=1.0, gt=0, description="Velocidad del tiempo (1=real, 2=doble, 0.5=mitad)")
+
+    # Auto-pedidos — controlados desde el Dashboard en Fase 5.
+    # Separados de sim_speed para que el frontend pueda activarlos
+    # independientemente del estado del reloj.
+    auto_order_enabled: bool = Field(default=False, description="Generar pedidos automáticos")
+    auto_order_interval_seconds: float = Field(default=10.0, gt=0, description="Segundos entre pedidos automáticos")
