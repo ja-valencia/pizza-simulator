@@ -1,16 +1,20 @@
-from langchain_groq import ChatGroq
+from langchain_google_genai import ChatGoogleGenerativeAI
 
 from app.config import settings
 
-_llm: ChatGroq | None = None
+# Chef usa Gemini 2.0 Flash:
+# Razón: el Chef necesita seguir instrucciones precisas (recetas, tiempos, orden de operaciones).
+# Gemini Flash es más consistente que Groq 8b para seguimiento de instrucciones complejas.
+# Mismo modelo que Manager para simplificar el setup — misma API key, mismo rate limit compartido.
+_llm: ChatGoogleGenerativeAI | None = None
 
 
-def get_chef_llm() -> ChatGroq:
+def get_chef_llm() -> ChatGoogleGenerativeAI:
     global _llm
     if _llm is None:
-        _llm = ChatGroq(
-            model="llama-3.1-8b-instant",
-            groq_api_key=settings.groq_api_key,
+        _llm = ChatGoogleGenerativeAI(
+            model="gemini-2.0-flash",
+            google_api_key=settings.google_api_key,
             temperature=0.6,
         )
     return _llm

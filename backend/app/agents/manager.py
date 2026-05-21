@@ -1,16 +1,20 @@
-from langchain_groq import ChatGroq
+from langchain_google_genai import ChatGoogleGenerativeAI
 
 from app.config import settings
 
-_llm: ChatGroq | None = None
+# Manager usa Gemini 2.0 Flash:
+# Razón: el Manager toma las decisiones más complejas (orquestación, validación de pedidos,
+# cierre de transacciones). Gemini Flash ofrece mejor razonamiento que los modelos Groq
+# pequeños, a un costo razonable. Se eligió Flash sobre Pro por velocidad/costo en free tier.
+_llm: ChatGoogleGenerativeAI | None = None
 
 
-def get_manager_llm() -> ChatGroq:
+def get_manager_llm() -> ChatGoogleGenerativeAI:
     global _llm
     if _llm is None:
-        _llm = ChatGroq(
-            model="llama-3.3-70b-versatile",
-            groq_api_key=settings.groq_api_key,
+        _llm = ChatGoogleGenerativeAI(
+            model="gemini-2.0-flash",
+            google_api_key=settings.google_api_key,
             temperature=0.7,
         )
     return _llm
