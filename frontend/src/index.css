@@ -1,0 +1,40 @@
+/* Tailwind CSS v4 */
+@import "tailwindcss";
+
+/* Press Start 2P: fuente pixelada 8-bit para identidad visual retro.
+   El proyecto evolucionará a sprites 8-bit en Fase 6; esta fuente
+   establece el tono desde ahora sin costo de assets adicionales. */
+@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+
+/* Paleta retro oscura — colores limitados y saturados, estilo 8-bit.
+   Variables globales facilitan ajustes en Fase 6 sin buscar en todo el código. */
+:root {
+  --bg-main: #0f0f1a;
+  --bg-card: #1a1a2e;
+  --bg-kitchen: #16213e;
+  --bg-street: #0d1b2a;
+  --accent-red: #e94560;
+  --accent-blue: #4cc9f0;
+  --accent-green: #4ade80;
+  --accent-yellow: #fbbf24;
+  --text-primary: #e2e8f0;
+  --text-dim: #64748b;
+  --border: #2d3748;
+}
+
+body {
+  background-color: var(--bg-main);
+  color: var(--text-primary);
+  font-family: 'Press Start 2P', monospace;
+  font-size: 10px;
+  line-height: 1.8;
+  margin: 0;
+}
+
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: var(--bg-card); }
+::-webkit-scrollbar-thumb { background: var(--accent-red); border-radius: 3px; }
+
+/* pixel-art: prepara contenedores para sprites PNG en Fase 6.
+   image-rendering: pixelated mantiene bordes nítidos en sprites pequeños. */
+.pixel-art { image-rendering: pixelated; image-rendering: crisp-edges; }
