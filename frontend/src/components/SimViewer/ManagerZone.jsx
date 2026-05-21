@@ -55,11 +55,53 @@ export function ManagerZone({ height = 340 }) {
       }}>
         ── RECEPCIÓN ──
       </div>
-      {/* Mostrador */}
+      {/* Mesa / mostrador */}
       <div style={{
         position: 'absolute', bottom: FLOOR_HEIGHT + 6, left: 6, right: 6, height: 18,
         background: '#1e3a5f', border: '1px solid #2d5080', borderRadius: 2,
       }} />
+      {/* Teléfono sobre el mostrador */}
+      <svg style={{ position: 'absolute', bottom: FLOOR_HEIGHT + 25, left: 9 }}
+           width="20" height="28" viewBox="0 0 20 28">
+        <rect x="1" y="0" width="18" height="28" fill="#0f172a" rx="1" />
+        <rect x="2" y="1" width="16" height="26" fill="#1e293b" rx="1" />
+        {/* Pantalla */}
+        <rect x="3" y="2"  width="14" height="10" fill="#0284c7" rx="1" />
+        <rect x="4" y="3"  width="12" height="8"  fill="#38bdf8" opacity="0.4" />
+        <rect x="5" y="4"  width="5"  height="3"  fill="#38bdf8" opacity="0.8" />
+        {/* Teclado */}
+        <rect x="3"  y="14" width="4" height="2" fill="#334155" rx="1" />
+        <rect x="8"  y="14" width="4" height="2" fill="#334155" rx="1" />
+        <rect x="13" y="14" width="4" height="2" fill="#334155" rx="1" />
+        <rect x="3"  y="18" width="4" height="2" fill="#334155" rx="1" />
+        <rect x="8"  y="18" width="4" height="2" fill="#334155" rx="1" />
+        <rect x="13" y="18" width="4" height="2" fill="#dc2626"  rx="1" />
+        <rect x="3"  y="22" width="4" height="2" fill="#334155" rx="1" />
+        <rect x="8"  y="22" width="4" height="2" fill="#334155" rx="1" />
+        <rect x="13" y="22" width="4" height="2" fill="#334155" rx="1" />
+      </svg>
+      {/* Caja registradora sobre el mostrador */}
+      <svg style={{ position: 'absolute', bottom: FLOOR_HEIGHT + 22, right: 7 }}
+           width="38" height="36" viewBox="0 0 38 36">
+        {/* Rollo de papel */}
+        <rect x="16" y="0" width="6" height="10" fill="#f1f5f9" rx="1" />
+        <rect x="17" y="1" width="4" height="8"  fill="#e2e8f0" />
+        {/* Cuerpo */}
+        <rect x="0"  y="9"  width="38" height="26" fill="#1e3a5f" rx="1" />
+        <rect x="1"  y="10" width="36" height="24" fill="#0f172a" rx="1" />
+        {/* Pantalla */}
+        <rect x="4"  y="12" width="30" height="10" fill="#0c4a6e" rx="1" />
+        <rect x="5"  y="13" width="28" height="8"  fill="#0284c7" opacity="0.6" rx="1" />
+        <rect x="6"  y="14" width="7"  height="5"  fill="#38bdf8" opacity="0.9" rx="1" />
+        <rect x="15" y="14" width="7"  height="5"  fill="#38bdf8" opacity="0.5" rx="1" />
+        {/* Teclas */}
+        <rect x="4"  y="24" width="9" height="4" fill="#1e40af" rx="1" />
+        <rect x="15" y="24" width="9" height="4" fill="#1e40af" rx="1" />
+        <rect x="26" y="24" width="8" height="4" fill="#dc2626"  rx="1" />
+        {/* Cajón */}
+        <rect x="2"  y="30" width="34" height="4" fill="#1e3a5f" rx="1" />
+        <rect x="15" y="31" width="8"  height="2" fill="#2d5080" rx="1" />
+      </svg>
 
       {/* === ROBOT — mismo bottom en todas las zonas === */}
       <motion.div
