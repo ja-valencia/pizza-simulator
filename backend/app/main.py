@@ -1,9 +1,15 @@
+import asyncio
 import json
+import logging
 from contextlib import asynccontextmanager
+
+logging.basicConfig(level=logging.INFO)
 
 from fastapi import FastAPI, Request, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 
+from app.agents.runner import SimRunner
+from app.api.orders import router as orders_router
 from app.api.sim import router as sim_router
 from app.db.postgres import init_db
 from app.db.redis import close_redis, get_redis, ping_redis
@@ -19,14 +25,20 @@ async def lifespan(app: FastAPI):
     await init_db()
     app.state.clock = SimClock()
     app.state.event_bus = EventBus()
+    app.state.runner = SimRunner()
+    asyncio.create_task(
+        app.state.runner.start(app.state.clock, app.state.event_bus)
+    )
     yield
     # Shutdown
+    await app.state.runner.stop()
     await app.state.clock.stop()
     await close_redis()
 
 
 app = FastAPI(title="Pizza Simulator API", version="0.1.0", lifespan=lifespan)
 app.include_router(sim_router, prefix="/sim", tags=["simulation"])
+app.include_router(orders_router, prefix="/orders", tags=["orders"])
 
 app.add_middleware(
     CORSMiddleware,
