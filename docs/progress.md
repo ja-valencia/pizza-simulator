@@ -17,10 +17,12 @@
 - [x] docker-compose.yml (Redis + PostgreSQL)
 - [x] Health endpoint verificado: `{"status":"ok","redis":"ok","postgres":"ok"}`
 
-## Fase 2 — Motor de simulación ⏳
-- [ ] Reloj de simulación (acelerar/frenar)
-- [ ] Event bus interno
-- [ ] Business rules engine (configurable)
+## Fase 2 — Motor de simulación ✅
+- [x] Reloj de simulación (acelerar/frenar) — `sim/clock.py`
+- [x] Event bus interno — `sim/event_bus.py`
+- [x] Business rules engine (configurable) — `sim/rules.py`
+- [x] Endpoints de control: `/sim/start`, `/sim/stop`, `/sim/reset`, `/sim/status`
+- [x] Velocidad del reloj se actualiza en tiempo real al cambiar `/config`
 
 ## Fase 3 — Agentes con LangGraph ⏳
 - [ ] Grafo LangGraph del workflow

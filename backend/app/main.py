@@ -1,12 +1,15 @@
 import json
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, Request, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 
+from app.api.sim import router as sim_router
 from app.db.postgres import init_db
 from app.db.redis import close_redis, get_redis, ping_redis
 from app.models.sim_config import REDIS_CONFIG_KEY, SimConfig
+from app.sim.clock import SimClock
+from app.sim.event_bus import EventBus
 from app.ws.manager import ws_manager
 
 
@@ -14,12 +17,16 @@ from app.ws.manager import ws_manager
 async def lifespan(app: FastAPI):
     # Startup
     await init_db()
+    app.state.clock = SimClock()
+    app.state.event_bus = EventBus()
     yield
     # Shutdown
+    await app.state.clock.stop()
     await close_redis()
 
 
 app = FastAPI(title="Pizza Simulator API", version="0.1.0", lifespan=lifespan)
+app.include_router(sim_router, prefix="/sim", tags=["simulation"])
 
 app.add_middleware(
     CORSMiddleware,
@@ -52,10 +59,12 @@ async def get_config():
 
 
 @app.put("/config", response_model=SimConfig)
-async def update_config(config: SimConfig):
+async def update_config(request: Request, config: SimConfig):
     """Actualiza la configuración de la simulación en Redis."""
     redis = await get_redis()
     await redis.set(REDIS_CONFIG_KEY, config.model_dump_json())
+    # Propaga velocidad al reloj en tiempo real
+    request.app.state.clock.set_speed(config.sim_speed_multiplier)
     await ws_manager.broadcast({"type": "CONFIG_UPDATED", "payload": config.model_dump()})
     return config
 
