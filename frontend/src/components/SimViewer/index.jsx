@@ -4,38 +4,42 @@ import { ManagerZone } from './ManagerZone'
 import { ChefZone } from './ChefZone'
 import { DeliveryZone } from './DeliveryZone'
 
-// SimViewer — Pipeline visual de izquierda a derecha estilo Nintendo 8-bit.
-// Proporciones: Manager 20% | Chef 30% | Delivery 50%
-// La "comanda volando" es un overlay absoluto que atraviesa las zonas.
+// Altura fija para que el piso quede alineado en las 3 zonas — clave para el efecto
+// de "escena continua" estilo videojuego. Sin esto, cada zona tiene distinto alto.
+const SCENE_HEIGHT = 340
+
 export function SimViewer() {
   const comandaFlying = useSimStore(s => s.comandaFlying)
 
   return (
-    <div style={{ position: 'relative', borderRadius: '8px', overflow: 'hidden', border: '1px solid var(--border)' }}>
+    <div style={{
+      position: 'relative',
+      borderRadius: '8px',
+      overflow: 'hidden',
+      border: '2px solid #1e293b',
+      height: SCENE_HEIGHT,
+      display: 'flex',
+    }}>
+      <ManagerZone height={SCENE_HEIGHT} />
+      <ChefZone    height={SCENE_HEIGHT} />
+      <DeliveryZone height={SCENE_HEIGHT} />
 
-      {/* Pipeline horizontal */}
-      <div style={{ display: 'flex', alignItems: 'stretch', minHeight: '260px' }}>
-        <ManagerZone />
-        <ChefZone />
-        <DeliveryZone />
-      </div>
-
-      {/* Comanda volando de Manager → Chef (overlay absoluto) */}
+      {/* Comanda volando Manager → Chef */}
       <AnimatePresence>
         {comandaFlying && (
           <motion.div
             key="comanda"
-            initial={{ left: '10%', opacity: 1, scale: 1 }}
-            animate={{ left: '22%', opacity: 0.9, scale: 0.8 }}
+            initial={{ left: '10%', opacity: 1, scale: 1.2 }}
+            animate={{ left: '24%', opacity: 0.9, scale: 0.8 }}
             exit={{ opacity: 0, scale: 0.3 }}
             transition={{ duration: 1.0, ease: 'easeInOut' }}
             style={{
               position: 'absolute',
-              top: '40%',
-              fontSize: '20px',
-              zIndex: 10,
+              top: '42%',
+              fontSize: '22px',
+              zIndex: 20,
               pointerEvents: 'none',
-              filter: 'drop-shadow(0 0 6px #fbbf24)',
+              filter: 'drop-shadow(0 0 8px #fbbf24)',
             }}
           >
             📋
