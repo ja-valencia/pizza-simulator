@@ -66,13 +66,15 @@ export function useWebSocket() {
         return
       }
 
-      // Cambio de config (velocidad, reglas)
+      // Cambio de config — sincroniza el store para que ConfigPanel refleje valores actuales
       if (type === 'CONFIG_UPDATED') {
+        useSimStore.getState().setConfig(payload)
         return
       }
 
-      // Estado inicial al conectar
+      // Estado inicial al conectar — carga la config actual en el store
       if (type === 'CONNECTED') {
+        useSimStore.getState().setConfig(payload)
         return
       }
 

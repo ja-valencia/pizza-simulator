@@ -1,6 +1,6 @@
 // Capa de acceso al backend FastAPI.
 // Usa /api/* que Vite proxea a http://localhost:8000/* en desarrollo.
-// En producción, apuntaría directamente al backend URL.
+// En producción apuntaría directamente al backend URL via variable de entorno.
 
 const BASE = '/api'
 
@@ -28,4 +28,12 @@ export const api = {
   // Pedidos
   createOrder: (items) => request('POST', '/orders', { items }),
   listOrders:  () => request('GET', '/orders'),
+
+  // Analytics — Fase 5
+  // summary: métricas agregadas desde PostgreSQL (polling cada 5s en Dashboard)
+  getAnalyticsSummary: () => request('GET', '/analytics/summary'),
+  // timeline: órdenes completadas por ventana de sim_time (para LineChart)
+  getTimeline:         () => request('GET', '/analytics/timeline'),
+  // ordersByStatus: distribución de status (para PieChart)
+  getOrdersByStatus:   () => request('GET', '/analytics/orders-by-status'),
 }

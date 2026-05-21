@@ -54,4 +54,19 @@ export const useSimStore = create((set) => ({
   updateOrderStatus: (orderId, status) => set((state) => ({
     orders: state.orders.map(o => o.id === orderId ? { ...o, status } : o),
   })),
+
+  // Métricas del Dashboard — actualizadas por polling (useAnalytics) y WebSocket
+  metrics: {
+    total_orders: 0,
+    completed: 0,
+    in_progress: 0,
+    free_deliveries: 0,
+    avg_delivery_sim_seconds: 0,
+    on_time_rate: 1.0,
+  },
+  updateMetrics: (metrics) => set({ metrics }),
+
+  // Config actual de la simulación — se sincroniza al conectar y en CONFIG_UPDATED
+  config: null,
+  setConfig: (config) => set({ config }),
 }))
