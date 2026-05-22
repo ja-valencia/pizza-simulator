@@ -114,7 +114,15 @@ async def cook(state: PizzaState, session: AsyncSession, event_bus: EventBus) ->
         {"order_id": state["order_id"], "items": state["items"], "message": msg_cooking},
         state["current_sim_time"], session,
     )
-    await asyncio.sleep(2.0)  # tiempo de horneado
+    # Tiempo de cocción configurable — respeta la velocidad del simulador
+    from app.db.redis import get_redis
+    from app.models.sim_config import REDIS_CONFIG_KEY, SimConfig
+    import json as _json
+    _redis = await get_redis()
+    _raw = await _redis.get(REDIS_CONFIG_KEY)
+    _config = SimConfig(**_json.loads(_raw)) if _raw else SimConfig()
+    cook_wait = max(0.5, _config.cooking_time_sim_seconds / max(_config.sim_speed_multiplier, 0.1))
+    await asyncio.sleep(cook_wait)
 
     msg_baked = await chef_narrate(f"sacar las pizzas del horno perfectamente doradas", state)
     new_status = OrderStatus.BAKED.value

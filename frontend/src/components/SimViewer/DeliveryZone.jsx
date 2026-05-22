@@ -2,18 +2,11 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { useSimStore } from '../../store/simStore'
 import { DeliveryRobot } from './sprites/DeliveryRobot'
 import { ClienteHouse } from './sprites/ClienteHouse'
+import { HOUSE_POSITIONS } from './waypoints'
 
 const ROBOT_BOTTOM = 72
 const FLOOR_HEIGHT = 52
 const ROBOT_SIZE   = 68
-
-// Posiciones X del robot según la acción (% dentro de la zona)
-const ROBOT_POSITIONS = {
-  idle:      '2%',
-  moving:    '52%',
-  delivered: '68%',
-  returning: '2%',
-}
 
 export function DeliveryZone({ height = 340 }) {
   const agentActions   = useSimStore(s => s.agentActions.delivery)
@@ -23,9 +16,9 @@ export function DeliveryZone({ height = 340 }) {
   const action    = agentActions.action
   const moving    = agentActions.moving
   const returning = agentActions.returning
+  const posX      = agentActions.posX ?? 5
 
-  const robotLeft = ROBOT_POSITIONS[action] || '2%'
-  const moveDuration = moving ? 1.8 : returning ? 2.2 : 0.4
+  const moveDuration = moving ? 1.8 : returning ? 2.2 : 0.9
 
   return (
     <div style={{ flex: 1, height, position: 'relative', overflow: 'hidden' }}>
@@ -92,35 +85,33 @@ export function DeliveryZone({ height = 340 }) {
         ── ENTREGAS ──
       </div>
 
-      {/* Casas de clientes */}
-      <div style={{
-        position: 'absolute', bottom: FLOOR_HEIGHT + 6,
-        left: '28%', right: '2%',
-        display: 'flex', alignItems: 'flex-end', gap: 10,
-      }}>
-        <AnimatePresence>
-          {deliveryHouses.map(house => (
-            <motion.div key={house.orderId}
-              initial={{ opacity: 0, scale: 0, y: 15 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0 }}
-              transition={{ duration: 0.4 }}
-            >
-              <ClienteHouse size={52} delivered={house.delivered} orderId={house.orderId} />
-            </motion.div>
-          ))}
-        </AnimatePresence>
-      </div>
+      {/* Casas — posición absoluta para sincronizar con posX del robot */}
+      <AnimatePresence>
+        {deliveryHouses.map((house, i) => (
+          <motion.div key={house.orderId}
+            initial={{ opacity: 0, scale: 0, y: 15 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0 }}
+            transition={{ duration: 0.4 }}
+            style={{
+              position: 'absolute',
+              bottom: FLOOR_HEIGHT + 6,
+              left: `${HOUSE_POSITIONS[Math.min(i, HOUSE_POSITIONS.length - 1)]}%`,
+            }}
+          >
+            <ClienteHouse size={52} delivered={house.delivered} orderId={house.orderId} />
+          </motion.div>
+        ))}
+      </AnimatePresence>
 
       {/* === ROBOT DELIVERY ===
           FIX: left SOLO en animate (no en style) para que Framer Motion
           detecte el cambio y anime el movimiento.
           El outer div hace idle-bob siempre; el inner div posiciona con left. */}
       <motion.div
-        initial={{ left: '2%' }}
-        animate={{ left: robotLeft }}
+        animate={{ left: `${posX}%` }}
         transition={{ duration: moveDuration, ease: 'easeInOut' }}
-        style={{ position: 'absolute', bottom: ROBOT_BOTTOM }}
+        style={{ position: 'absolute', bottom: ROBOT_BOTTOM, left: `${posX}%` }}
       >
         {/* Idle bob — siempre corriendo */}
         <motion.div

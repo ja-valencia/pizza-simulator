@@ -98,9 +98,19 @@ Redis almacena el estado volátil que cambia constantemente y no necesita persis
   "free_delivery_after_minutes": 45.0,
   "sim_speed_multiplier": 1.0,
   "auto_order_enabled": false,
-  "auto_order_interval_seconds": 10.0
+  "auto_order_interval_seconds": 10.0,
+  "oven_capacity": 3,
+  "cooking_time_sim_seconds": 30.0,
+  "comanda_queue_size": 5
 }
 ```
+
+**Campos nuevos (Fase 7):**
+| Campo | Default | Descripción | Enforcement |
+|-------|---------|-------------|-------------|
+| `oven_capacity` | 3 | Máx. pedidos procesándose simultáneamente | `SimRunner.process_order()` espera slot libre |
+| `cooking_time_sim_seconds` | 30.0 | Duración del horneado en segundos de simulación | `asyncio.sleep(t/speed)` en nodo `cook` |
+| `comanda_queue_size` | 5 | Máx. comandas encoladas para el chef | Disponible vía `rules.queue_is_full()` |
 
 ---
 

@@ -1,8 +1,8 @@
 import { useEffect, useRef } from 'react'
 import { useSimStore } from '../store/simStore'
+import { WP, HOUSE_POSITIONS } from '../components/SimViewer/waypoints'
 
 // Mapa EventType → agente responsable.
-// Permite actualizar el estado visual del agente correcto por cada evento del backend.
 const EVENT_AGENT_MAP = {
   ORDER_CREATED: 'cliente',
   ORDER_ACCEPTED: 'manager',
@@ -18,7 +18,7 @@ const EVENT_AGENT_MAP = {
   DELIVERY_RETURNED: 'delivery',
 }
 
-// Status visual por evento — se muestra en la card del agente y EventLog
+// Status visual por evento
 const EVENT_STATUS_MAP = {
   ORDER_CREATED: 'Recibiendo pedido...',
   ORDER_ACCEPTED: 'Aceptando pedido',
@@ -66,47 +66,89 @@ export function useWebSocket() {
         })
       }
 
-      // Fase 6: acciones visuales del pipeline
+      // ── Fase 7: acciones visuales del pipeline con posX (movimiento estilo The Sims) ──
       switch (type) {
+
+        // MANAGER: teléfono → escritorio → comanda → caja
         case 'ORDER_CREATED':
-        case 'ORDER_ACCEPTED':
-          store.updateAgentAction('manager', { action: type.toLowerCase() })
+          store.updateAgentAction('manager', { action: 'order_created', posX: WP.manager.phone })
           break
+
+        case 'ORDER_ACCEPTED':
+          store.updateAgentAction('manager', { action: 'order_accepted', posX: WP.manager.idle })
+          break
+
         case 'COMANDA_SENT':
-          store.updateAgentAction('manager', { action: 'comanda_sent' })
+          store.updateAgentAction('manager', { action: 'comanda_sent', posX: WP.manager.comanda_drop })
           store.setComandaFlying(true)
           setTimeout(() => store.setComandaFlying(false), 1200)
+          // Manager vuelve al escritorio después de dejar la comanda
+          setTimeout(() => store.updateAgentAction('manager', { action: 'idle', posX: WP.manager.idle }), 1800)
+          // Chef va a leer la comanda
+          store.updateAgentAction('chef', { action: 'comanda_read', posX: WP.chef.comanda_read })
           break
+
+        // CHEF: leer comanda → horno → empacar → barra entrega
         case 'PIZZA_COOKING':
-          store.updateAgentAction('chef', { action: 'cooking', cooking: true })
+          store.updateAgentAction('chef', { action: 'cooking', cooking: true, posX: WP.chef.oven })
           break
+
         case 'PIZZA_BAKED':
-          store.updateAgentAction('chef', { action: 'baked', cooking: false })
+          store.updateAgentAction('chef', { action: 'baked', cooking: false, posX: WP.chef.packing })
           break
+
         case 'PIZZA_PACKED':
-          store.updateAgentAction('chef', { action: 'packed', cooking: false })
+          store.updateAgentAction('chef', { action: 'packed', cooking: false, posX: WP.chef.shelf })
+          // Chef regresa al centro después de dejar la caja
+          setTimeout(() => store.updateAgentAction('chef', { action: 'idle', posX: WP.chef.idle }), 1400)
           break
+
         case 'STATION_CLEANING':
-          store.updateAgentAction('chef', { action: 'cleaning', cooking: false })
+          store.updateAgentAction('chef', { action: 'cleaning', cooking: false, posX: WP.chef.idle })
           break
-        case 'DELIVERY_DISPATCHED':
-          store.updateAgentAction('delivery', { action: 'moving', moving: true, returning: false })
+
+        // DELIVERY: recoge → va a las casas → regresa
+        case 'DELIVERY_DISPATCHED': {
+          // Primero ir a recoger, luego moverse a la primera casa
+          store.updateAgentAction('delivery', { action: 'moving', moving: true, returning: false, posX: WP.delivery.pickup })
           if (payload?.order_id) store.addDeliveryHouse(payload.order_id)
-          break
-        case 'DELIVERED':
-          if (payload?.order_id) store.markHouseDelivered(payload.order_id)
-          store.updateAgentAction('delivery', { action: 'delivered', moving: false })
-          break
-        case 'DELIVERY_RETURNED':
-          store.updateAgentAction('delivery', { action: 'returning', moving: false, returning: true })
+          // Después de recoger, avanzar hacia la casa de entrega
           setTimeout(() => {
-            store.updateAgentAction('delivery', { action: 'idle', returning: false })
-            store.clearDeliveredHouses()
-          }, 2000)
+            const { deliveryHouses } = useSimStore.getState()
+            const houseIdx = Math.min(deliveryHouses.length - 1, HOUSE_POSITIONS.length - 1)
+            const targetX = HOUSE_POSITIONS[Math.max(0, houseIdx)]
+            store.updateAgentAction('delivery', { posX: targetX })
+          }, 700)
           break
+        }
+
+        case 'DELIVERED': {
+          if (payload?.order_id) {
+            const { deliveryHouses } = useSimStore.getState()
+            const house = deliveryHouses.find(h => h.orderId === payload.order_id)
+            store.markHouseDelivered(payload.order_id)
+            store.updateAgentAction('delivery', { action: 'delivered', moving: false, posX: house?.posX ?? 30 })
+          }
+          break
+        }
+
+        case 'DELIVERY_RETURNED':
+          store.updateAgentAction('delivery', { action: 'returning', moving: false, returning: true, posX: WP.delivery.home })
+          setTimeout(() => {
+            store.updateAgentAction('delivery', { action: 'idle', returning: false, posX: WP.delivery.home })
+            store.clearDeliveredHouses()
+          }, 2200)
+          break
+
+        // MANAGER: pago → caja → escritorio
         case 'PAYMENT_RECEIVED':
+          store.updateAgentAction('manager', { action: 'happy', posX: WP.manager.cash_register })
+          setTimeout(() => store.updateAgentAction('manager', { action: 'idle', posX: WP.manager.idle }), 1800)
+          break
+
         case 'PAYMENT_FREE':
-          store.updateAgentAction('manager', { action: type === 'PAYMENT_FREE' ? 'shocked' : 'happy' })
+          store.updateAgentAction('manager', { action: 'shocked', posX: WP.manager.cash_register })
+          setTimeout(() => store.updateAgentAction('manager', { action: 'idle', posX: WP.manager.idle }), 2200)
           break
       }
 

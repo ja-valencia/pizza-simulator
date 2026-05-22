@@ -16,12 +16,16 @@ export function ChefZone({ height = 340 }) {
   const cooking = agentActions.cooking
   const packed  = orders.filter(o => o.status === 'PACKED').slice(0, 6)
 
+  const posX   = agentActions.posX ?? 32
+
   // Event flashes — sin idle bob (el bob va en el outer div)
   const eventFlash = {
-    cooking:  { rotate: [-6, 6, -6, 6, 0] },
-    baked:    { scale: [1, 1.3, 0.9, 1] },
-    packed:   { x: [0, 20, 0] },
-    cleaning: { rotate: [-10, 10, -10, 10, 0] },
+    comanda_read: { rotate: [-4, 4, -4, 0] },
+    cooking:      { rotate: [-6, 6, -6, 6, 0] },
+    baked:        { scale: [1, 1.3, 0.9, 1] },
+    packed:       { x: [0, 20, 0] },
+    cleaning:     { rotate: [-10, 10, -10, 10, 0] },
+    shelf:        { x: [0, 14, 0] },
   }
 
   return (
@@ -197,23 +201,50 @@ export function ChefZone({ height = 340 }) {
         }}>▶</div>
       </div>
 
-      {/* === ROBOT ===
-          Outer: idle-bob continuo  |  Inner: event-flash por key */}
+      {/* === ROBOT: 3 capas ===
+          Capa 1: posX — se mueve entre estaciones (comanda→horno→empaque→shelf)
+          Capa 2: idle-bob — siempre activo
+          Capa 3: event-flash — key=animKey lo resetea en cada evento */}
       <motion.div
-        animate={{ y: [0, -8, 0] }}
-        transition={{ repeat: Infinity, duration: 2.2, ease: 'easeInOut' }}
-        style={{
-          position: 'absolute', bottom: ROBOT_BOTTOM,
-          left: `calc((100% - ${SHELF_WIDTH}px) / 2)`,
-          transform: 'translateX(-50%)',
-        }}
+        animate={{ left: `${posX}%` }}
+        transition={{ duration: 0.85, ease: 'easeInOut' }}
+        style={{ position: 'absolute', bottom: ROBOT_BOTTOM }}
       >
         <motion.div
-          key={agentActions.animKey}
-          animate={eventFlash[action] || {}}
-          transition={{ duration: 0.45, ease: 'easeOut' }}
+          animate={{ y: [0, -8, 0] }}
+          transition={{ repeat: Infinity, duration: 2.2, ease: 'easeInOut' }}
+          style={{ display: 'inline-block', position: 'relative' }}
         >
-          <ChefRobot size={72} action={action} cooking={cooking} />
+          {/* Activity indicator */}
+          {(action === 'cooking' || action === 'baked') && (
+            <motion.div animate={{ y: [0, -5, 0], opacity: [0.8, 1, 0.8] }}
+              transition={{ repeat: Infinity, duration: 0.8 }}
+              style={{ position: 'absolute', bottom: '100%', left: '50%',
+                transform: 'translateX(-50%)', fontSize: 14, marginBottom: 2 }}>
+              🔥
+            </motion.div>
+          )}
+          {action === 'comanda_read' && (
+            <motion.div animate={{ rotate: [-5, 5, -5, 0] }} transition={{ duration: 0.5 }}
+              style={{ position: 'absolute', bottom: '100%', left: '50%',
+                transform: 'translateX(-50%)', fontSize: 14, marginBottom: 2 }}>
+              📋
+            </motion.div>
+          )}
+          {(action === 'packed' || action === 'shelf') && (
+            <div style={{ position: 'absolute', bottom: '100%', left: '50%',
+              transform: 'translateX(-50%)', fontSize: 14, marginBottom: 2 }}>
+              📦
+            </div>
+          )}
+
+          <motion.div
+            key={agentActions.animKey}
+            animate={eventFlash[action] || {}}
+            transition={{ duration: 0.45, ease: 'easeOut' }}
+          >
+            <ChefRobot size={72} action={action} cooking={cooking} />
+          </motion.div>
         </motion.div>
       </motion.div>
 

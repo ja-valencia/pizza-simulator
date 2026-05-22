@@ -32,6 +32,16 @@ class BusinessRulesEngine:
         return current_load < config.max_delivery_capacity
 
     @staticmethod
+    def oven_is_full(active_cooking: int, config: SimConfig) -> bool:
+        """True si el horno ya alcanzó su capacidad máxima de pedidos simultáneos."""
+        return active_cooking >= config.oven_capacity
+
+    @staticmethod
+    def queue_is_full(queued: int, config: SimConfig) -> bool:
+        """True si la cola de comandas del chef está llena."""
+        return queued >= config.comanda_queue_size
+
+    @staticmethod
     def should_batch_more(
         waiting_orders: int,
         batch_wait_start: float,

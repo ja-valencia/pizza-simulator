@@ -219,3 +219,58 @@
   → `docs/data-model.md`: schema PostgreSQL, Redis keys, flujo completo de datos.
   → `docs/integrations.md`: Google Gemini, Groq, LangGraph, WebSocket, Docker.
   → `docs/security.md`: estado actual de seguridad + checklist para producción.
+
+---
+
+## Fase 7 — Realtime Sim Visualization + In-Sim Control Panel 🚧
+
+- [x] **`posX` en agentActions — movimiento horizontal de todos los agentes**
+  → Manager y Chef ahora tienen `posX` (% dentro de su zona) en el store. Delivery
+  ya lo tenía pero sin usar. El patrón de 3 capas (position → idle-bob → event-flash)
+  permite que el bob infinito nunca se interrumpa mientras el robot cambia de estación.
+
+- [x] **Waypoints por zona (`waypoints.js`)**
+  → Constante central `WP` con posiciones de cada estación: `manager.phone=18`,
+  `manager.comanda_drop=82`, `chef.oven=62`, etc. Separar los números en un archivo
+  facilita ajustar posiciones sin tocar la lógica de los componentes.
+
+- [x] **`useWebSocket.js` — event → posX mapping**
+  → Cada evento del backend mueve el robot a la estación correspondiente:
+  ORDER_CREATED→teléfono, COMANDA_SENT→borde Chef, PIZZA_COOKING→horno,
+  PIZZA_PACKED→shelf, PAYMENT→caja registradora. Los timeouts devuelven
+  el robot al idle después de completar la acción.
+
+- [x] **ManagerZone y ChefZone — 3 capas de motion + activity indicators**
+  → El movimiento horizontal (posX) es la capa externa; el idle-bob
+  es la capa media (siempre corriendo); el event-flash es la capa interna
+  (key=animKey). Los iconos de actividad (📞 🔥 📦 💰) aparecen encima del
+  robot cuando está en cada estación.
+
+- [x] **DeliveryZone — casas con posición absoluta sincronizada**
+  → Las casas cambiaron de flex layout a `position: absolute` con `left: HOUSE_POSITIONS[i]%`.
+  Esto sincroniza exactamente la posición del robot con la casa a la que llega.
+  HOUSE_POSITIONS = [30, 50, 68] % coincide con WP.delivery.house_0/1/2.
+
+- [x] **SimPanel — panel de control inline con 3 tabs**
+  → Tab VELOCIDAD: slider 0.5x–10x + botones preset. Tab REGLAS: grid 2 cols
+  con sliders para todas las reglas de producción (oven_capacity, pizzas/viaje,
+  SLA, limpieza, cola, espera chef, cocción, auto-pedidos). Tab TIEMPO: toggle
+  SEG/MIN/HR para el reloj. Todos los cambios persisten al backend via PUT /config.
+
+- [x] **SimClock — timeUnit aware**
+  → Formatea el tiempo de simulación según la preferencia: MM:SS (seg), Nm Xs (min),
+  Nh Mm (hr). La unidad se guarda en localStorage y en el store.
+
+- [x] **Backend: 3 nuevos campos en SimConfig**
+  → `oven_capacity` (máx pizzas simultáneas), `cooking_time_sim_seconds` (tiempo
+  de cocción configurable), `comanda_queue_size` (máx cola del chef).
+  Razón enforcement: los sliders de UI sin efecto real pierden su valor educativo.
+
+- [x] **Backend: enforcement de oven_capacity en SimRunner**
+  → `process_order()` espera antes de procesar si `_active_orders >= oven_capacity`.
+  Con `oven_capacity=1` y 2 pedidos, el segundo espera visiblemente hasta que el
+  primero pasa a IN_DELIVERY.
+
+- [x] **Backend: cooking_time_sim_seconds en nodo cook**
+  → `asyncio.sleep(cooking_time / speed_multiplier)` entre PIZZA_COOKING y PIZZA_BAKED.
+  El tiempo se adapta a la velocidad del simulador — a 2x speed, 30s se convierten en 15s reales.

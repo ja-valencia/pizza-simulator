@@ -1,4 +1,5 @@
 import { create } from 'zustand'
+import { HOUSE_POSITIONS } from '../components/SimViewer/waypoints'
 
 // Zustand: store global del simulador.
 // Razón de usar Zustand sobre Redux/Context: API mínima, sin boilerplate,
@@ -41,7 +42,6 @@ export const useSimStore = create((set) => ({
       [agentName]: {
         ...state.agentStates[agentName],
         ...update,
-        // animKey cambia con cada update → Framer Motion re-dispara la animación
         animKey: (state.agentStates[agentName]?.animKey || 0) + 1,
       },
     },
@@ -55,31 +55,27 @@ export const useSimStore = create((set) => ({
     orders: state.orders.map(o => o.id === orderId ? { ...o, status } : o),
   })),
 
-  // Métricas del Dashboard — actualizadas por polling (useAnalytics) y WebSocket
+  // Métricas del Dashboard
   metrics: {
-    total_orders: 0,
-    completed: 0,
-    in_progress: 0,
-    free_deliveries: 0,
-    avg_delivery_sim_seconds: 0,
-    on_time_rate: 1.0,
+    total_orders: 0, completed: 0, in_progress: 0,
+    free_deliveries: 0, avg_delivery_sim_seconds: 0, on_time_rate: 1.0,
   },
   updateMetrics: (metrics) => set({ metrics }),
 
-  // Config actual de la simulación — se sincroniza al conectar y en CONFIG_UPDATED
+  // Config actual — sincronizada al conectar y en CONFIG_UPDATED
   config: null,
   setConfig: (config) => set({ config }),
 
   // Estado de posición y acción de cada agente para el pipeline visual.
-  // Fase 6: permite animar movimiento entre zonas y acciones específicas.
+  // posX: posición horizontal en % dentro de la zona del agente.
+  // Fase 7: todos los agentes tienen posX para movimiento estilo The Sims.
   agentActions: {
-    manager:  { action: 'idle', animKey: 0 },
-    chef:     { action: 'idle', animKey: 0, cooking: false },
-    delivery: { action: 'idle', animKey: 0, moving: false, returning: false, posX: 0 },
+    manager:  { action: 'idle', animKey: 0, posX: 50 },
+    chef:     { action: 'idle', animKey: 0, posX: 32, cooking: false },
+    delivery: { action: 'idle', animKey: 0, moving: false, returning: false, posX: 5 },
   },
 
   // Casas activas en la zona de delivery.
-  // Se generan cuando un pedido entra en IN_DELIVERY y desaparecen con PAID/FREE.
   deliveryHouses: [],  // [{ orderId, delivered, posX }]
 
   // Comanda volando de Manager → Chef (overlay animado)
@@ -98,9 +94,9 @@ export const useSimStore = create((set) => ({
 
   addDeliveryHouse: (orderId) => set((state) => {
     if (state.deliveryHouses.find(h => h.orderId === orderId)) return state
-    // Distribuir casas uniformemente en la zona de delivery (50% del container)
-    const existing = state.deliveryHouses.length
-    const posX = 10 + existing * 28  // % relativo a la zona delivery
+    const idx = state.deliveryHouses.length
+    // posX sincronizado con HOUSE_POSITIONS para que el robot llegue al lugar exacto
+    const posX = HOUSE_POSITIONS[Math.min(idx, HOUSE_POSITIONS.length - 1)]
     return { deliveryHouses: [...state.deliveryHouses, { orderId, delivered: false, posX }] }
   }),
 
@@ -115,4 +111,12 @@ export const useSimStore = create((set) => ({
   })),
 
   setComandaFlying: (flying) => set({ comandaFlying: flying }),
+
+  // Unidad de tiempo preferida para mostrar el reloj.
+  // Fase 7: toggle en SimPanel, persiste en localStorage.
+  timeUnit: localStorage.getItem('pizza_time_unit') || 'sec',
+  setTimeUnit: (unit) => {
+    localStorage.setItem('pizza_time_unit', unit)
+    set({ timeUnit: unit })
+  },
 }))

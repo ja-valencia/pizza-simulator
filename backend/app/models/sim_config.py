@@ -17,6 +17,11 @@ class SimConfig(BaseModel):
     # SLA / pizzas gratis
     free_delivery_after_minutes: float = Field(default=45.0, gt=0, description="Entrega gratis si supera X minutos")
 
+    # Cocina / Chef
+    oven_capacity: int = Field(default=3, ge=1, le=8, description="Máx. pizzas cocinándose simultáneamente")
+    cooking_time_sim_seconds: float = Field(default=30.0, gt=0, description="Tiempo de cocción en segundos de simulación")
+    comanda_queue_size: int = Field(default=5, ge=1, le=20, description="Máx. comandas encoladas esperando al chef")
+
     # Simulación
     sim_speed_multiplier: float = Field(default=1.0, gt=0, description="Velocidad del tiempo (1=real, 2=doble, 0.5=mitad)")
 

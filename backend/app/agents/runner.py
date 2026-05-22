@@ -62,6 +62,24 @@ class SimRunner:
         if order_id in self._active_orders:
             logger.warning(f"[Runner] Orden {order_id[:8]} ya en proceso, ignorando")
             return
+
+        # Respetar oven_capacity — espera si el horno está lleno
+        try:
+            from app.db.redis import get_redis
+            from app.models.sim_config import REDIS_CONFIG_KEY, SimConfig
+            import json
+            _redis = await get_redis()
+            _raw = await _redis.get(REDIS_CONFIG_KEY)
+            _config = SimConfig(**json.loads(_raw)) if _raw else SimConfig()
+            wait_count = 0
+            while len(self._active_orders) >= _config.oven_capacity:
+                if wait_count == 0:
+                    logger.info(f"[Runner] Horno lleno ({len(self._active_orders)}/{_config.oven_capacity}), orden {order_id[:8]} en cola")
+                await asyncio.sleep(0.5)
+                wait_count += 1
+        except Exception:
+            pass  # Si falla la lectura de config, continúa sin restricción
+
         self._active_orders.add(order_id)
         logger.info(f"[Runner] Procesando orden {order_id[:8]}: {items}")
 

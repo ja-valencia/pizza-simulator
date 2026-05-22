@@ -7,6 +7,7 @@ import { EventLog } from './components/EventLog'
 import { Dashboard } from './components/Dashboard'
 import { PipelineTracker } from './components/PipelineTracker'
 import { HowToUse } from './components/HowToUse'
+import { SimPanel } from './components/SimPanel'
 
 function TabButton({ label, active, onClick }) {
   return (
@@ -55,9 +56,10 @@ function App() {
         <>
           {/* Tracker del pedido activo con timing */}
           <PipelineTracker />
-          <div className="mb-4">
+          <div className="mb-2">
             <SimViewer />
           </div>
+          <SimPanel />
           <EventLog />
         </>
       ) : (
