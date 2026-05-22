@@ -21,6 +21,7 @@ def get_cliente_llm() -> ChatGroq:
             model="llama-3.1-8b-instant",
             groq_api_key=settings.groq_api_key,
             temperature=0.9,
+            request_timeout=30,
         )
     return _llm
 

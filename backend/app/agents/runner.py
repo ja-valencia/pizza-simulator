@@ -15,6 +15,27 @@ from app.sim.event_bus import EventBus
 
 logger = logging.getLogger(__name__)
 
+# Watchdog: si una orden no completa en 120s reales, se cancela.
+# Protege contra LLM calls colgadas que bloquean _active_orders.
+ORDER_TIMEOUT_SECONDS = 120.0
+
+
+async def _mark_order_failed(order_id: str, event_bus: EventBus, clock: SimClock) -> None:
+    """Marca la orden como FAILED en BD y notifica al frontend via WebSocket."""
+    try:
+        async with AsyncSessionLocal() as session:
+            row = await session.get(OrderRow, uuid.UUID(order_id))
+            if row and row.status not in (OrderStatus.PAID.value, OrderStatus.FREE.value):
+                row.status = OrderStatus.FAILED.value
+                await session.commit()
+            await event_bus.publish(
+                EventType.ORDER_FAILED, AgentType.MANAGER,
+                {"order_id": order_id, "message": "Pedido cancelado: timeout del pipeline"},
+                clock.sim_time, session,
+            )
+    except Exception as e:
+        logger.error(f"[Runner] Error marcando orden {order_id[:8]} como FAILED: {e}")
+
 
 class SimRunner:
     """Loop principal que conecta el SimClock con los agentes LangGraph."""
@@ -58,12 +79,19 @@ class SimRunner:
         clock: SimClock,
         event_bus: EventBus,
     ) -> None:
-        """Procesa un pedido a través del grafo LangGraph."""
+        """Procesa un pedido a través del grafo LangGraph.
+
+        Protecciones anti-cuelgue:
+        1. request_timeout=30 en cada cliente LLM (cada llamada individualmente)
+        2. asyncio.wait_for con ORDER_TIMEOUT_SECONDS (toda la cadena)
+        3. _active_orders siempre se limpia en finally (incluso si cuelga o falla)
+        """
         if order_id in self._active_orders:
             logger.warning(f"[Runner] Orden {order_id[:8]} ya en proceso, ignorando")
             return
 
         # Respetar oven_capacity — espera si el horno está lleno
+        # Cap de espera: oven_capacity * 120s para no bloquear indefinidamente
         try:
             from app.db.redis import get_redis
             from app.models.sim_config import REDIS_CONFIG_KEY, SimConfig
@@ -72,9 +100,13 @@ class SimRunner:
             _raw = await _redis.get(REDIS_CONFIG_KEY)
             _config = SimConfig(**json.loads(_raw)) if _raw else SimConfig()
             wait_count = 0
+            max_wait_cycles = int(_config.oven_capacity * ORDER_TIMEOUT_SECONDS / 0.5)
             while len(self._active_orders) >= _config.oven_capacity:
                 if wait_count == 0:
                     logger.info(f"[Runner] Horno lleno ({len(self._active_orders)}/{_config.oven_capacity}), orden {order_id[:8]} en cola")
+                if wait_count >= max_wait_cycles:
+                    logger.error(f"[Runner] Orden {order_id[:8]} desistió de esperar (horno nunca liberó slot)")
+                    return
                 await asyncio.sleep(0.5)
                 wait_count += 1
         except Exception:
@@ -98,11 +130,22 @@ class SimRunner:
                     "delivery_load": 0,
                     "pizzas_since_clean": 0,
                     "minutes_since_clean": 0.0,
+                    "_needs_clean": False,
                 }
-                await graph.ainvoke(initial_state)
+                # Watchdog: si el grafo no termina en ORDER_TIMEOUT_SECONDS, cancela
+                await asyncio.wait_for(
+                    graph.ainvoke(initial_state),
+                    timeout=ORDER_TIMEOUT_SECONDS,
+                )
                 logger.info(f"[Runner] Orden {order_id[:8]} completada ✓")
+
+        except asyncio.TimeoutError:
+            logger.error(f"[Runner] Orden {order_id[:8]} TIMEOUT ({ORDER_TIMEOUT_SECONDS}s). Marcando FAILED.")
+            await _mark_order_failed(order_id, event_bus, clock)
+
         except Exception as e:
             logger.error(f"[Runner] Error en orden {order_id[:8]}: {e}", exc_info=True)
+
         finally:
             self._active_orders.discard(order_id)
 
@@ -135,15 +178,12 @@ class SimRunner:
         self._spawn(self.process_order(order_id, items, self.clock, self.event_bus))
 
     async def _loop(self) -> None:
-        # _last_auto_order: cuándo se generó el último pedido automático
-        # Comparamos contra sim_time (no tiempo real) para respetar la velocidad
         _last_auto_order_real_time = 0.0
         while self.running:
             await asyncio.sleep(2.5)
             if not self.clock or not self.clock.running:
                 continue
 
-            # Leer SimConfig de Redis en cada tick para reflejar cambios del Dashboard
             try:
                 from app.db.redis import get_redis
                 from app.models.sim_config import REDIS_CONFIG_KEY, SimConfig

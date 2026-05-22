@@ -20,6 +20,7 @@ def get_manager_llm() -> ChatGroq:
             model="llama-3.3-70b-versatile",
             groq_api_key=settings.groq_api_key,
             temperature=0.7,
+            request_timeout=30,
         )
     return _llm
 

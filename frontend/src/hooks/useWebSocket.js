@@ -16,6 +16,7 @@ const EVENT_AGENT_MAP = {
   PAYMENT_RECEIVED: 'manager',
   PAYMENT_FREE: 'manager',
   DELIVERY_RETURNED: 'delivery',
+  ORDER_FAILED: 'manager',
 }
 
 // Status visual por evento
@@ -32,6 +33,7 @@ const EVENT_STATUS_MAP = {
   PAYMENT_RECEIVED: 'Pago recibido 💰',
   PAYMENT_FREE: '¡GRATIS! 🚨',
   DELIVERY_RETURNED: 'Regresando...',
+  ORDER_FAILED: 'Pedido cancelado ❌',
 }
 
 export function useWebSocket() {
@@ -151,6 +153,18 @@ export function useWebSocket() {
           store.updateAgentAction('manager', { action: 'shocked', posX: WP.manager.cash_register })
           if (payload?.order_id) store.closeOrder(payload.order_id, true)
           setTimeout(() => store.updateAgentAction('manager', { action: 'idle', posX: WP.manager.idle }), 2200)
+          break
+
+        case 'ORDER_FAILED':
+          // Limpiar estado visual: cajas del shelf, casas pendientes, agentes a idle
+          if (payload?.order_id) {
+            updateOrderStatus(payload.order_id, 'FAILED')
+          }
+          store.clearDeliveredHouses()
+          // Devolver agentes a idle si estaban ocupados con este pedido
+          store.updateAgentAction('manager',  { action: 'idle', posX: WP.manager.idle })
+          store.updateAgentAction('chef',     { action: 'idle', posX: WP.chef.idle, cooking: false })
+          store.updateAgentAction('delivery', { action: 'idle', moving: false, returning: false, posX: WP.delivery.home })
           break
       }
 

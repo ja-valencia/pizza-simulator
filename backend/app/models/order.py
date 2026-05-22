@@ -18,6 +18,7 @@ class OrderStatus(str, Enum):
     DELIVERED = "DELIVERED"
     PAID = "PAID"
     FREE = "FREE"
+    FAILED = "FAILED"
 
 
 # --- SQLAlchemy table ---

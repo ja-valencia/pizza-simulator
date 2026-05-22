@@ -23,6 +23,7 @@ class EventType(str, Enum):
     PAYMENT_FREE = "PAYMENT_FREE"
     DELIVERY_RETURNED = "DELIVERY_RETURNED"
     STATION_CLEANING = "STATION_CLEANING"
+    ORDER_FAILED = "ORDER_FAILED"
 
 
 class AgentType(str, Enum):

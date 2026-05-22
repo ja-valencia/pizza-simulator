@@ -13,3 +13,4 @@ class PizzaState(TypedDict):
     delivery_load: int          # pizzas que carga el delivery actualmente
     pizzas_since_clean: int     # pizzas horneadas desde la última limpieza
     minutes_since_clean: float  # minutos de sim desde la última limpieza
+    _needs_clean: bool          # set by check_station, read by route_station
