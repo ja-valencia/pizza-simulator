@@ -11,13 +11,13 @@ export function ManagerZone({ height = 340 }) {
   const agentStates  = useSimStore(s => s.agentStates.manager)
   const action = agentActions.action
 
-  const robotAnim = {
-    idle:           { y: [0, -4, 0], transition: { repeat: Infinity, duration: 2.8, ease: 'easeInOut' } },
-    order_created:  { scale: [1, 1.1, 1], transition: { duration: 0.35 } },
-    order_accepted: { rotate: [-3, 3, -3, 0], transition: { duration: 0.4 } },
-    comanda_sent:   { x: [0, 10, 0], transition: { duration: 0.5 } },
-    happy:          { y: [0, -12, 0], transition: { duration: 0.45 } },
-    shocked:        { x: [-7, 7, -7, 7, 0], transition: { duration: 0.5 } },
+  // Event flashes — solo transformaciones de evento (sin idle bob)
+  const eventFlash = {
+    order_created:  { scale: [1, 1.25, 0.95, 1] },
+    order_accepted: { rotate: [-6, 6, -6, 0] },
+    comanda_sent:   { x: [0, 20, 0] },
+    happy:          { scale: [1, 1.3, 0.9, 1] },
+    shocked:        { x: [-12, 12, -12, 12, 0] },
   }
 
   return (
@@ -103,19 +103,24 @@ export function ManagerZone({ height = 340 }) {
         <rect x="15" y="31" width="8"  height="2" fill="#2d5080" rx="1" />
       </svg>
 
-      {/* === ROBOT — mismo bottom en todas las zonas === */}
+      {/* === ROBOT ===
+          Outer: idle-bob continuo (no tiene key → nunca se desmonta)
+          Inner: event-flash disparado por key=animKey */}
       <motion.div
-        key={agentActions.animKey}
-        animate={robotAnim[action] || robotAnim.idle}
-        style={{
-          position: 'absolute', bottom: ROBOT_BOTTOM,
-          left: '50%', transform: 'translateX(-50%)',
-        }}
+        animate={{ y: [0, -8, 0] }}
+        transition={{ repeat: Infinity, duration: 2.2, ease: 'easeInOut' }}
+        style={{ position: 'absolute', bottom: ROBOT_BOTTOM, left: '50%', transform: 'translateX(-50%)' }}
       >
-        <ManagerRobot
-          size={68}
-          action={action === 'shocked' ? 'shocked' : action === 'happy' ? 'happy' : action === 'order_created' ? 'calling' : 'idle'}
-        />
+        <motion.div
+          key={agentActions.animKey}
+          animate={eventFlash[action] || {}}
+          transition={{ duration: 0.45, ease: 'easeOut' }}
+        >
+          <ManagerRobot
+            size={68}
+            action={action === 'shocked' ? 'shocked' : action === 'happy' ? 'happy' : action === 'order_created' ? 'calling' : 'idle'}
+          />
+        </motion.div>
       </motion.div>
 
       {/* Mensaje del LLM */}

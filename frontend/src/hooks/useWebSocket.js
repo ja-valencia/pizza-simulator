@@ -113,7 +113,7 @@ export function useWebSocket() {
       addEvent({ type, payload, agent: agentName, sim_time, id: Date.now() })
 
       if (type === 'ORDER_CREATED' && payload?.order_id) {
-        addOrder({ id: payload.order_id, items: payload.items, status: 'PENDING' })
+        addOrder({ id: payload.order_id, items: payload.items, status: 'PENDING', createdAt: sim_time })
       }
       const statusMap = {
         ORDER_ACCEPTED: 'ACCEPTED', PIZZA_COOKING: 'COOKING',

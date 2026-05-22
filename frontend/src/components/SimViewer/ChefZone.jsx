@@ -16,12 +16,12 @@ export function ChefZone({ height = 340 }) {
   const cooking = agentActions.cooking
   const packed  = orders.filter(o => o.status === 'PACKED').slice(0, 6)
 
-  const robotAnim = {
-    idle:     { y: [0, -4, 0], transition: { repeat: Infinity, duration: 2.8, ease: 'easeInOut' } },
-    cooking:  { x: [-3, 3, -3, 0], transition: { repeat: 2, duration: 0.3 } },
-    baked:    { y: [0, -14, 0], transition: { duration: 0.5 } },
-    packed:   { x: [0, 12, 0], transition: { duration: 0.6 } },
-    cleaning: { rotate: [-8, 8, -8, 8, 0], transition: { duration: 0.6 } },
+  // Event flashes — sin idle bob (el bob va en el outer div)
+  const eventFlash = {
+    cooking:  { rotate: [-6, 6, -6, 6, 0] },
+    baked:    { scale: [1, 1.3, 0.9, 1] },
+    packed:   { x: [0, 20, 0] },
+    cleaning: { rotate: [-10, 10, -10, 10, 0] },
   }
 
   return (
@@ -197,18 +197,24 @@ export function ChefZone({ height = 340 }) {
         }}>▶</div>
       </div>
 
-      {/* === ROBOT — centrado en el área de cocina (izquierda del shelf) === */}
+      {/* === ROBOT ===
+          Outer: idle-bob continuo  |  Inner: event-flash por key */}
       <motion.div
-        key={agentActions.animKey}
-        animate={robotAnim[action] || robotAnim.idle}
+        animate={{ y: [0, -8, 0] }}
+        transition={{ repeat: Infinity, duration: 2.2, ease: 'easeInOut' }}
         style={{
           position: 'absolute', bottom: ROBOT_BOTTOM,
-          // centra en el área del chef (excluyendo el shelf)
           left: `calc((100% - ${SHELF_WIDTH}px) / 2)`,
           transform: 'translateX(-50%)',
         }}
       >
-        <ChefRobot size={72} action={action} cooking={cooking} />
+        <motion.div
+          key={agentActions.animKey}
+          animate={eventFlash[action] || {}}
+          transition={{ duration: 0.45, ease: 'easeOut' }}
+        >
+          <ChefRobot size={72} action={action} cooking={cooking} />
+        </motion.div>
       </motion.div>
 
       {agentStates.message && (
