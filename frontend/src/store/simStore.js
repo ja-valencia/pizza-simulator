@@ -47,9 +47,12 @@ export const useSimStore = create((set) => ({
     },
   })),
 
-  addOrder: (order) => set((state) => ({
-    orders: [order, ...state.orders].slice(0, 20),
-  })),
+  addOrder: (order) => set((state) => {
+    // Deduplicar: si ya existe una orden con el mismo ID no agregarla de nuevo.
+    // Defensa secundaria contra el bug de doble-conexión WebSocket.
+    if (state.orders.find(o => o.id === order.id)) return state
+    return { orders: [order, ...state.orders].slice(0, 20) }
+  }),
 
   updateOrderStatus: (orderId, status) => set((state) => ({
     orders: state.orders.map(o => o.id === orderId ? { ...o, status } : o),

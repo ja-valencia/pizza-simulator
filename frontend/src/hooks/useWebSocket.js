@@ -41,11 +41,19 @@ export function useWebSocket() {
   const { updateClock, addEvent, updateAgent, addOrder, updateOrderStatus } = useSimStore()
 
   useEffect(() => {
+    // shouldReconnect previene que el setTimeout de onclose cree una conexión
+    // duplicada cuando React 18 StrictMode desmonta y remonta el componente.
+    // Sin este guard: Mount→WS-A(onclose→setTimeout)→Cleanup→A.close()→onclose
+    // dispara→3s después→WS-C creado junto al WS-B del remount = 2 conexiones
+    // activas → cada evento llega 2 veces → pedidos duplicados en la tabla.
+    let shouldReconnect = true
+
     function connect() {
+      if (!shouldReconnect) return
       const ws = new WebSocket(`ws://${window.location.host}/ws`)
       wsRef.current = ws
       ws.onmessage = (e) => handleEvent(JSON.parse(e.data))
-      ws.onclose = () => setTimeout(connect, 3000)
+      ws.onclose = () => { if (shouldReconnect) setTimeout(connect, 3000) }
       ws.onerror = () => ws.close()
     }
 
@@ -191,6 +199,9 @@ export function useWebSocket() {
     }
 
     connect()
-    return () => wsRef.current?.close()
+    return () => {
+      shouldReconnect = false
+      wsRef.current?.close()
+    }
   }, [])
 }
