@@ -1,22 +1,24 @@
 import asyncio
 import logging
 
-from langchain_google_genai import ChatGoogleGenerativeAI
+from langchain_groq import ChatGroq
 
 from app.config import settings
 
 logger = logging.getLogger(__name__)
 
-# Manager usa Gemini 2.0 Flash — mejor razonamiento para orquestación y validación.
-_llm: ChatGoogleGenerativeAI | None = None
+# Manager usa Groq llama-3.3-70b — sin límite diario, 30 RPM, latencia ~100ms.
+# Cambiado de Gemini 2.0 Flash (15 RPM, 1500/día) para evitar bloqueos por quota.
+# La narrativa del Manager no requiere razonamiento profundo — 70B es más que suficiente.
+_llm: ChatGroq | None = None
 
 
-def get_manager_llm() -> ChatGoogleGenerativeAI:
+def get_manager_llm() -> ChatGroq:
     global _llm
     if _llm is None:
-        _llm = ChatGoogleGenerativeAI(
-            model="gemini-2.0-flash",
-            google_api_key=settings.google_api_key,
+        _llm = ChatGroq(
+            model="llama-3.3-70b-versatile",
+            groq_api_key=settings.groq_api_key,
             temperature=0.7,
         )
     return _llm

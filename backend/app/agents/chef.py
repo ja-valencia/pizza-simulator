@@ -1,22 +1,23 @@
 import asyncio
 import logging
 
-from langchain_google_genai import ChatGoogleGenerativeAI
+from langchain_groq import ChatGroq
 
 from app.config import settings
 
 logger = logging.getLogger(__name__)
 
-# Chef usa Gemini 2.0 Flash — consistencia en instrucciones de cocina.
-_llm: ChatGoogleGenerativeAI | None = None
+# Chef usa Groq llama-3.3-70b — sin límite diario, 30 RPM, latencia ~100ms.
+# Cambiado de Gemini 2.0 Flash (15 RPM, 1500/día) para evitar bloqueos por quota.
+_llm: ChatGroq | None = None
 
 
-def get_chef_llm() -> ChatGoogleGenerativeAI:
+def get_chef_llm() -> ChatGroq:
     global _llm
     if _llm is None:
-        _llm = ChatGoogleGenerativeAI(
-            model="gemini-2.0-flash",
-            google_api_key=settings.google_api_key,
+        _llm = ChatGroq(
+            model="llama-3.3-70b-versatile",
+            groq_api_key=settings.groq_api_key,
             temperature=0.6,
         )
     return _llm
