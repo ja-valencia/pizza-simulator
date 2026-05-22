@@ -55,6 +55,15 @@ export const useSimStore = create((set) => ({
     orders: state.orders.map(o => o.id === orderId ? { ...o, status } : o),
   })),
 
+  // Marca el pedido como finalizado guardando wallDeliveredAt y isFree
+  closeOrder: (orderId, isFree) => set((state) => ({
+    orders: state.orders.map(o =>
+      o.id === orderId
+        ? { ...o, wallDeliveredAt: new Date().toISOString(), isFree }
+        : o
+    ),
+  })),
+
   // Métricas del Dashboard
   metrics: {
     total_orders: 0, completed: 0, in_progress: 0,

@@ -1,11 +1,13 @@
+import asyncio
+import logging
+
 from langchain_google_genai import ChatGoogleGenerativeAI
 
 from app.config import settings
 
-# Manager usa Gemini 2.0 Flash:
-# Razón: el Manager toma las decisiones más complejas (orquestación, validación de pedidos,
-# cierre de transacciones). Gemini Flash ofrece mejor razonamiento que los modelos Groq
-# pequeños, a un costo razonable. Se eligió Flash sobre Pro por velocidad/costo en free tier.
+logger = logging.getLogger(__name__)
+
+# Manager usa Gemini 2.0 Flash — mejor razonamiento para orquestación y validación.
 _llm: ChatGoogleGenerativeAI | None = None
 
 
@@ -21,12 +23,20 @@ def get_manager_llm() -> ChatGoogleGenerativeAI:
 
 
 async def manager_narrate(action: str, context: dict) -> str:
-    """El Manager genera una frase narrativa sobre su acción."""
+    """El Manager genera una frase narrativa. Retry 3x con backoff para resistir fallos de quota."""
     llm = get_manager_llm()
     prompt = (
         f"Eres el Manager de una pizzería. En una frase corta y natural, describe esta acción: '{action}'. "
         f"Contexto: pedido #{context.get('order_id', '')[:8]}, items: {context.get('items', [])}. "
         f"Responde solo con la frase, sin comillas."
     )
-    response = await llm.ainvoke(prompt)
-    return response.content.strip()
+    for attempt in range(3):
+        try:
+            response = await llm.ainvoke(prompt)
+            return response.content.strip()
+        except Exception as e:
+            if attempt == 2:
+                logger.warning(f"[Manager] LLM falló 3 veces ({e}). Usando fallback.")
+                return f"[Manager] {action}"
+            await asyncio.sleep(2 ** attempt)
+    return f"[Manager] {action}"

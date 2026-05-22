@@ -143,11 +143,13 @@ export function useWebSocket() {
         // MANAGER: pago → caja → escritorio
         case 'PAYMENT_RECEIVED':
           store.updateAgentAction('manager', { action: 'happy', posX: WP.manager.cash_register })
+          if (payload?.order_id) store.closeOrder(payload.order_id, false)
           setTimeout(() => store.updateAgentAction('manager', { action: 'idle', posX: WP.manager.idle }), 1800)
           break
 
         case 'PAYMENT_FREE':
           store.updateAgentAction('manager', { action: 'shocked', posX: WP.manager.cash_register })
+          if (payload?.order_id) store.closeOrder(payload.order_id, true)
           setTimeout(() => store.updateAgentAction('manager', { action: 'idle', posX: WP.manager.idle }), 2200)
           break
       }
@@ -155,7 +157,13 @@ export function useWebSocket() {
       addEvent({ type, payload, agent: agentName, sim_time, id: Date.now() })
 
       if (type === 'ORDER_CREATED' && payload?.order_id) {
-        addOrder({ id: payload.order_id, items: payload.items, status: 'PENDING', createdAt: sim_time })
+        addOrder({
+          id: payload.order_id,
+          items: payload.items,
+          status: 'PENDING',
+          createdAt: sim_time,
+          wallCreatedAt: new Date().toISOString(),
+        })
       }
       const statusMap = {
         ORDER_ACCEPTED: 'ACCEPTED', PIZZA_COOKING: 'COOKING',

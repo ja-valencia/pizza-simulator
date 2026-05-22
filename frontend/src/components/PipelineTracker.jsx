@@ -53,27 +53,24 @@ export function PipelineTracker() {
     }}>
       {/* Fila de título */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-        <div style={{ fontSize: '8px', color: 'var(--text-dim)', letterSpacing: '1px' }}>
+        <div style={{ fontSize: 'var(--fs-xs)', color: 'var(--text-dim)', letterSpacing: '1px' }}>
           ── PEDIDO EN CURSO ──
         </div>
         <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-          {/* Items del pedido */}
-          <div style={{ fontSize: '8px', color: 'var(--text-primary)' }}>
+          <div style={{ fontFamily: 'var(--font-body)', fontSize: 'var(--fs-sm)', color: 'var(--text-primary)' }}>
             🍕 {shown.items?.join(', ') || '—'}
           </div>
-          {/* Tiempo transcurrido */}
           {elapsed != null && (
             <div style={{
-              fontSize: '9px', fontWeight: 'bold',
+              fontFamily: 'var(--font-body)', fontSize: 'var(--fs-base)', fontWeight: 'bold',
               color: isFree ? '#ef4444' : isDone ? '#4ade80' : 'var(--accent-yellow)',
             }}>
               ⏱ {formatTime(elapsed)}
               {isFree && ' — ¡GRATIS! 🚨'}
             </div>
           )}
-          {/* ID del pedido */}
-          <div style={{ fontSize: '7px', color: 'var(--text-dim)', opacity: 0.6 }}>
-            #{String(shown.id).slice(-4)}
+          <div style={{ fontFamily: 'var(--font-body)', fontSize: 'var(--fs-xs)', color: 'var(--text-dim)' }}>
+            #{String(shown.id).slice(-4).toUpperCase()}
           </div>
         </div>
       </div>
@@ -135,7 +132,8 @@ export function PipelineTracker() {
                 </div>
                 {/* Label */}
                 <div style={{
-                  fontSize: '6px', letterSpacing: '0.5px',
+                  fontFamily: 'var(--font-pixel)', fontSize: 'var(--fs-xs)',
+                  letterSpacing: '0.5px',
                   color: isCurrent ? stage.color : isFuture ? 'var(--text-dim)' : stage.color,
                   opacity: isFuture ? 0.4 : 1,
                   fontWeight: isCurrent ? 'bold' : 'normal',

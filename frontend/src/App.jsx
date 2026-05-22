@@ -8,6 +8,7 @@ import { Dashboard } from './components/Dashboard'
 import { PipelineTracker } from './components/PipelineTracker'
 import { HowToUse } from './components/HowToUse'
 import { SimPanel } from './components/SimPanel'
+import { OrdersTable } from './components/OrdersTable'
 
 function TabButton({ label, active, onClick }) {
   return (
@@ -60,7 +61,7 @@ function App() {
             <SimViewer />
           </div>
           <SimPanel />
-          <EventLog />
+          <OrdersTable />
         </>
       ) : (
         <Dashboard active={activeTab === 'dashboard'} />

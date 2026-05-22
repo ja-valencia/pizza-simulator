@@ -45,10 +45,10 @@ export function SimControls() {
     background: active ? 'var(--accent-red)' : 'var(--bg-kitchen)',
     border: '1px solid var(--border)',
     color: 'var(--text-primary)',
-    padding: '6px 12px',
+    padding: '7px 14px',
     cursor: 'pointer',
     borderRadius: '4px',
-    fontSize: '10px',
+    fontSize: 'var(--fs-sm)',
     fontFamily: 'inherit',
   })
 
@@ -63,7 +63,7 @@ export function SimControls() {
 
       {/* Velocidad */}
       <div className="flex gap-1 items-center">
-        <span style={{ color: 'var(--text-dim)', fontSize: '9px' }}>SPEED:</span>
+        <span style={{ color: 'var(--text-dim)', fontSize: 'var(--fs-xs)' }}>SPEED:</span>
         {SPEEDS.map(s => (
           <button
             key={s}

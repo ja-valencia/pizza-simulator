@@ -1,11 +1,13 @@
+import asyncio
+import logging
+
 from langchain_google_genai import ChatGoogleGenerativeAI
 
 from app.config import settings
 
-# Chef usa Gemini 2.0 Flash:
-# Razón: el Chef necesita seguir instrucciones precisas (recetas, tiempos, orden de operaciones).
-# Gemini Flash es más consistente que Groq 8b para seguimiento de instrucciones complejas.
-# Mismo modelo que Manager para simplificar el setup — misma API key, mismo rate limit compartido.
+logger = logging.getLogger(__name__)
+
+# Chef usa Gemini 2.0 Flash — consistencia en instrucciones de cocina.
 _llm: ChatGoogleGenerativeAI | None = None
 
 
@@ -21,12 +23,20 @@ def get_chef_llm() -> ChatGoogleGenerativeAI:
 
 
 async def chef_narrate(action: str, context: dict) -> str:
-    """El Chef genera una frase narrativa sobre su acción."""
+    """El Chef genera una frase narrativa. Retry 3x con backoff para resistir fallos de quota."""
     llm = get_chef_llm()
     prompt = (
         f"Eres el Chef de una pizzería. En una frase corta y natural, describe esta acción: '{action}'. "
         f"Contexto: pizzas: {context.get('items', [])}. "
         f"Responde solo con la frase, sin comillas."
     )
-    response = await llm.ainvoke(prompt)
-    return response.content.strip()
+    for attempt in range(3):
+        try:
+            response = await llm.ainvoke(prompt)
+            return response.content.strip()
+        except Exception as e:
+            if attempt == 2:
+                logger.warning(f"[Chef] LLM falló 3 veces ({e}). Usando fallback.")
+                return f"[Chef] {action}"
+            await asyncio.sleep(2 ** attempt)
+    return f"[Chef] {action}"

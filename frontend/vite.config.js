@@ -13,5 +13,10 @@ export default defineConfig({
       '/api': { target: 'http://localhost:8000', rewrite: path => path.replace(/^\/api/, '') },
       '/ws': { target: 'ws://localhost:8000', ws: true },
     }
-  }
+  },
+  test: {
+    environment: 'jsdom',
+    globals: true,
+    setupFiles: './src/tests/setup.js',
+  },
 })

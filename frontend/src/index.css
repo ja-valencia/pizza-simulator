@@ -18,17 +18,37 @@
   --accent-green: #4ade80;
   --accent-yellow: #fbbf24;
   --text-primary: #e2e8f0;
-  --text-dim: #64748b;
+  --text-dim: #94a3b8;
   --border: #2d3748;
+
+  /* Fuentes — Fase 8: legibilidad mejorada.
+     Press Start 2P solo para headers/labels retro.
+     system-ui para datos, tablas y texto de cuerpo. */
+  --font-pixel: 'Press Start 2P', monospace;
+  --font-body:  system-ui, -apple-system, 'Segoe UI', sans-serif;
+
+  /* Escala tipográfica — valores mínimos legibles con Press Start 2P */
+  --fs-xs:   11px;   /* labels pequeños en zonas, hints */
+  --fs-sm:   13px;   /* texto UI secundario, sliders, botones */
+  --fs-base: 15px;   /* texto principal, tablas */
+  --fs-lg:   17px;   /* títulos de sección */
+  --fs-xl:   20px;   /* header principal */
 }
 
 body {
   background-color: var(--bg-main);
   color: var(--text-primary);
-  font-family: 'Press Start 2P', monospace;
-  font-size: 10px;
+  font-family: var(--font-pixel);
+  font-size: var(--fs-sm);
   line-height: 1.8;
   margin: 0;
+}
+
+/* Clase utilitaria para texto de cuerpo con fuente legible */
+.body-text {
+  font-family: var(--font-body);
+  font-size: var(--fs-base);
+  line-height: 1.5;
 }
 
 ::-webkit-scrollbar { width: 6px; }
